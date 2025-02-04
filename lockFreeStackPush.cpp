@@ -1,11 +1,14 @@
 /*
 General Considerations
-From the outside, the caller’s responsibility (application) is to protect the data. From inside, the data structure is responsible for protecting itself. A data structure that protects itself so a data race cannot appear is called thread-safe.
+From the outside, the caller’s responsibility (application) is to protect the data. From inside, the data structure is responsible for protecting itself. 
+A data structure that protects itself so a data race cannot appear is called thread-safe.
 
 
 First, what general considerations must you keep in mind when designing a concurrent data structure?
 
-Locking Strategy: Should the data structure support coarse-grained or fine-grained locking or be lock-free? Coarse-grained locking might be easier to implement but introduces contention. A fine-grained implementation or a lock-free one is much more challenging. First of all, what do I mean by coarse-grained locking? Coarse-grained locking means that only one thread uses the data structure at one point in time.
+Locking Strategy: Should the data structure support coarse-grained or fine-grained locking or be lock-free? Coarse-grained locking might be easier to implement but introduces contention. 
+A fine-grained implementation or a lock-free one is much more challenging. First of all, what do I mean by coarse-grained locking? Coarse-grained locking means that only one thread uses the data structure at one point in time.
+
 The Granularity of the Interface: The bigger the thread-safe data structure’s interface, the more difficult it becomes to reason about its concurrent usage.
 Typical Usage Pattern: When readers mainly use your data structure, you should not optimize it for writers.
 Avoidance of Loopholes: Don’t pass the internals of your data structure to clients.
@@ -14,6 +17,7 @@ Scalability: How is your data structure’s performance characteristic when the 
 concurrent clients increases, or the data structure is bounded?
 Invariants: Which invariant must hold for your data structure when used?
 Exceptions: What should happen if an exception occurs?
+
 Of course, these considerations are dependent on each other. For example, using a coarse-grained locking strategy may increase the contention on the data structure and break scalability.
 
 First of all, what is a stack?
@@ -51,7 +55,8 @@ In my simplified implementation, I start with the push member function. First, l
 
 
 Each node in the singly-linked list has two attributes. Its value T and the next. next points to the next element in the singly-linked list. Only the node points to the nullptr. 
-Adding a new node to the data is straightforward. Create a new node and let next pointer point to the previous head. So far, the new node is not accessible. Finally, the new node becomes the new head, completing the push operation.
+Adding a new node to the data is straightforward. Create a new node and let next pointer point to the previous head. So far, the new node is not accessible. 
+Finally, the new node becomes the new head, completing the push operation.
 
 
 The following example shows the lock-free implementation of a concurrent stack.
@@ -99,8 +104,11 @@ int main(){
 Let me analyze the crucial member function push. It creates the new node (line 1), adjusts
 its next pointer to the old head, and makes the new node in a so-called CAS operation the new head (line 3). A CAS operation provides, in an atomic step, a compare and swap operation.
 
-The call newNode->next = head.load() loads the old value of head. If the loaded value newNode->next is still the same such as head in line 3, the head is updated to the newNode, and the call head.compare_exchange_strong returns true. If not, the call returns false, and the while loop is executed until the call returns true. head.compare_exchange_strong returns false if another thread has meanwhile added a new node to the stack.
+The call newNode->next = head.load() loads the old value of head. If the loaded value newNode->next is still the same such as head in line 3, the head is updated to the newNode, 
+and the call head.compare_exchange_strong returns true. If not, the call returns false, and the while loop is executed until the call returns true. 
+head.compare_exchange_strong returns false if another thread has meanwhile added a new node to the stack.
 
 
-Lines 2 and 3 build a kind of atomic transaction. First, you make a snapshot of the data structure (line 2), then try to publish the transaction (line 3). If the snapshot is no longer valid, you roll back and try it again.
+Lines 2 and 3 build a kind of atomic transaction. First, you make a snapshot of the data structure (line 2), then try to publish the transaction (line 3). 
+If the snapshot is no longer valid, you roll back and try it again.
 */
